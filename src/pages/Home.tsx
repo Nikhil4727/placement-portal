@@ -14,20 +14,6 @@ const Home = () => {
           <p className="text-xl md:text-2xl mb-8">
             Your gateway to career opportunities and professional growth
           </p>
-          {/* <div className="flex justify-center space-x-4">
-            <Link
-              to="/student-signup"
-              className="bg-white text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition"
-            >
-              Join as Student
-            </Link>
-            <Link
-              to="/admin-signup"
-              className="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
-            >
-              Join as Admin
-            </Link>
-          </div> */}
         </div>
       </div>
 

@@ -32,7 +32,7 @@ const Login = () => {
 
       const data = await response.json(); // Parse the JSON response
       localStorage.setItem('token', data.token); // Store token in localStorage
-      navigate('/admin-dashboard'); // Redirect to admin dashboard after successful login
+      navigate('/Training'); // Redirect to admin dashboard after successful login
     } catch (err) {
       console.log(err);
       //@ts-ignore
