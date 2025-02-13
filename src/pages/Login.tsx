@@ -1,5 +1,7 @@
+// Login.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -8,6 +10,7 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { setIsAdmin } = useAuth(); // Use context to update isAdmin state
 
   // Function to handle login logic
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,6 +35,7 @@ const Login = () => {
 
       const data = await response.json(); // Parse the JSON response
       localStorage.setItem('token', data.token); // Store token in localStorage
+      setIsAdmin(true); // Update isAdmin state in context
       navigate('/Training'); // Redirect to admin dashboard after successful login
     } catch (err) {
       console.log(err);

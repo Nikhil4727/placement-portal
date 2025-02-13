@@ -1,13 +1,25 @@
+// Header.js
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { GraduationCap, Search } from 'lucide-react';
-
+import {useAuth} from '../context/AuthContext';
 const Header = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const { isAdmin, setIsAdmin } = useAuth(); // Use context for isAdmin state
+  const navigate = useNavigate();
 
   const handleSearch = () => {
     console.log('Searching for:', searchTerm);
-    // Implement search functionality here
+  };
+
+  const handleSignOut = () => {
+    setIsAdmin(false); // Reset admin state
+    localStorage.removeItem('token'); // Clear token from localStorage
+    navigate('/'); // Redirect to home page after sign-out
+  };
+
+  const handleLogin = () => {
+    navigate('/login'); // Redirect to the login page
   };
 
   return (
@@ -21,7 +33,9 @@ const Header = () => {
           
           <nav className="hidden md:flex items-center space-x-6">
             <Link to="/placements" className="hover:text-indigo-200 transition">Placements</Link>
-            <Link to="/training" className="hover:text-indigo-200 transition">Training</Link>
+            {!isAdmin && (
+              <Link to="/training" className="hover:text-indigo-200 transition">Training</Link>
+            )}
           </nav>
 
           <div className="flex items-center space-x-4">
@@ -41,12 +55,21 @@ const Header = () => {
               </button>
             </div>
             
-            <Link
-              to="/login"
-              className="px-4 py-2 rounded-md bg-indigo-500 hover:bg-indigo-400 transition"
-            >
-              Login
-            </Link>
+            {isAdmin ? (
+              <button
+                onClick={handleSignOut}
+                className="px-2 py-1 rounded-md bg-indigo-500 hover:bg-indigo-400 transition"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <button
+                onClick={handleLogin}
+                className="px-4 py-2 rounded-md bg-indigo-500 hover:bg-indigo-400 transition"
+              >
+                Login
+              </button>
+            )}
           </div>
         </div>
       </div>
