@@ -1,43 +1,4 @@
-// import React, { useState, useEffect } from "react";
-// import axios from "axios";
-// import PerformanceTable from "../pages/PerformanceTable";
-// import PerformanceChart from "../pages/PerformanceChart";
-
-// // Performance Data ka Type define kiya
-// interface PerformanceData {
-//   _id: string;
-//   year: number;
-//   section: string;
-//   title: string;
-//   topics: string[];
-// }
-
-// const PerformanceCard: React.FC = () => {
-//   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
-
-//   useEffect(() => {
-//     axios.get<PerformanceData[]>("/api/performances").then((res) => {
-//       setPerformanceData(res.data);
-//     });
-//   }, []);
-
-//   return (
-//     <div className="bg-white shadow-md p-6 rounded-xl">
-//       <h2 className="text-xl font-semibold mb-4">Performance Overview</h2>
-//       <PerformanceTable data={performanceData} />
-//       <PerformanceChart data={performanceData} />
-//     </div>
-//   );
-// };
-
-// export default PerformanceCard;
-
-
-
-
-
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { PerformanceData } from "../type";
 
@@ -52,79 +13,142 @@ const PerformanceCard = () => {
     section: null as string | null,
   });
 
-  useEffect(() => {
-    const fetchPerformanceData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get<PerformanceData[]>("/api/performances", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setPerformanceData(res.data);
-      } catch (err) {
-        setError("Failed to fetch performance data.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [files, setFiles] = useState<any[]>([]); // State to store uploaded files
+  const [showFiles, setShowFiles] = useState(false); // State to toggle file table visibility
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-    fetchPerformanceData();
+  // Fetch uploaded files
+  const fetchFiles = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://localhost:5000/api/files", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("Fetched files from backend:", res.data); // Log the fetched files
+      setFiles(res.data);
+    } catch (error) {
+      console.error("Failed to fetch files:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchFiles(); 
   }, []);
 
-  // 🔹 Show Year Dropdown
-  const handleAddData = () => {
-    setShowYearDropdown(true);
+  // Handle file upload
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("year", selectedOptions.year!);
+      formData.append("section", selectedOptions.section!);
+
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.post("http://localhost:5000/api/upload", formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        console.log("File uploaded successfully:", res.data); // Log the upload response
+        alert("File uploaded and stored in MongoDB successfully!");
+
+        // Refresh the file list
+        await fetchFiles();
+
+        // Clear selected options and file input
+        setSelectedOptions({ year: null, section: null });
+        setShowYearDropdown(false);
+        event.target.value = ""; // Clear the file input
+      } catch (error) {
+        console.error("File upload failed:", error);
+        alert("Failed to upload file.");
+      }
+    }
   };
 
-  // 🔹 Select Year
-  const handleYearSelect = (year: string) => {
-    setSelectedOptions({ ...selectedOptions, year, section: null });
+  // Handle file deletion
+  const handleDeleteFile = async (filename: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const confirmDelete = window.confirm("Are you sure you want to delete this file?");
+      
+      if (confirmDelete) {
+        await axios.delete(`http://localhost:5000/api/file/${filename}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        alert("File deleted successfully!");
+        await fetchFiles(); // Refresh the file list
+      }
+    } catch (error) {
+      console.error("Failed to delete file:", error);
+      alert("Failed to delete file.");
+    }
   };
 
-  // 🔹 Select Section
-  const handleSectionSelect = (section: string) => {
-    setSelectedOptions({ ...selectedOptions, section });
+  // Toggle file table visibility
+  const toggleFileTable = () => {
+    setShowFiles(!showFiles);
+    setShowYearDropdown(false); // Hide the dropdown when "View Files" is clicked
   };
 
-  // 🔹 Final Confirmation
-  const handleConfirmSelection = () => {
-    console.log("Final Selection:", selectedOptions);
-    alert(`Year: ${selectedOptions.year}, Section: ${selectedOptions.section} selected!`);
+  // Handle "Add Data" button click
+  const handleAddDataClick = () => {
+    setShowYearDropdown(!showYearDropdown);
+    setShowFiles(false); // Hide the file table
+  };
+
+  // Handle other button clicks (Update, Review)
+  const handleOtherButtonClick = () => {
+    setShowYearDropdown(false);
+    setShowFiles(false); // Hide the file table
   };
 
   return (
     <div className="bg-white shadow-md p-6 rounded-xl">
       <h2 className="text-xl font-semibold mb-4">Performance Overview</h2>
 
-      {loading && <p>Loading performance data...</p>}
-      {error && <p className="text-red-500">{error}</p>}
-
-      {!loading && !error && performanceData.length === 0 && (
-        <p>No performance records found.</p>
-      )}
-
-      {!loading && !error && performanceData.length > 0 && (
-        <>
-          {/* <PerformanceTable data={performanceData} /> */}
-          {/* <PerformanceChart data={performanceData} /> */}
-        </>
-      )}
+      {/* {loading && <p>Loading performance data...</p>}
+      {error && <p className="text-red-500">{error}</p>} */}
 
       {/* 🔹 Action Buttons */}
       <div className="mt-4 flex space-x-4">
-        <button onClick={handleAddData} className="bg-blue-500 text-white px-4 py-2 rounded-md">
+        <button
+          onClick={handleAddDataClick}
+          className="bg-blue-500 text-white px-4 py-2 rounded-md"
+        >
           Add Data
         </button>
-        <button className="bg-green-500 text-white px-4 py-2 rounded-md">Update Data</button>
-        <button className="bg-red-500 text-white px-4 py-2 rounded-md">Delete Data</button>
-        <button className="bg-gray-500 text-white px-4 py-2 rounded-md">Review Data</button>
+        <button
+          onClick={handleOtherButtonClick}
+          className="bg-green-500 text-white px-4 py-2 rounded-md"
+        >
+          Update Data
+        </button>
+        <button
+          onClick={handleOtherButtonClick}
+          className="bg-gray-500 text-white px-4 py-2 rounded-md"
+        >
+          Review Data
+        </button>
+        <button
+          onClick={toggleFileTable}
+          className="bg-purple-500 text-white px-4 py-2 rounded-md"
+        >
+          View Files
+        </button>
       </div>
 
       {/* 🔹 Year Dropdown */}
       {showYearDropdown && (
         <div className="mt-4">
           <label className="block text-gray-700">Select Year:</label>
-          <select 
-            onChange={(e) => handleYearSelect(e.target.value)}
+          <select
+            onChange={(e) => setSelectedOptions({ ...selectedOptions, year: e.target.value, section: null })}
             className="border p-2 rounded w-full"
           >
             <option value="">Choose Year</option>
@@ -138,8 +162,8 @@ const PerformanceCard = () => {
       {selectedOptions.year && (
         <div className="mt-4">
           <label className="block text-gray-700">Select Section:</label>
-          <select 
-            onChange={(e) => handleSectionSelect(e.target.value)}
+          <select
+            onChange={(e) => setSelectedOptions({ ...selectedOptions, section: e.target.value })}
             className="border p-2 rounded w-full"
           >
             <option value="">Choose Section</option>
@@ -153,7 +177,10 @@ const PerformanceCard = () => {
       {/* 🔹 Add File Button (Show Only When Year & Section are Selected) */}
       {selectedOptions.year && selectedOptions.section && (
         <div className="mt-4">
-          <button className="border border-gray-300 px-4 py-2 rounded-md flex items-center space-x-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="border border-gray-300 px-4 py-2 rounded-md flex items-center space-x-2"
+          >
             <svg
               className="w-5 h-5 text-blue-500"
               fill="none"
@@ -166,6 +193,69 @@ const PerformanceCard = () => {
             </svg>
             <span className="text-blue-500">Add file</span>
           </button>
+
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+        </div>
+      )}
+
+      {/* 🔹 Display Uploaded Files in a Table */}
+      {showFiles && (
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold mb-4">Uploaded Files</h3>
+          {files.length > 0 ? (
+            <table className="w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 p-2">Filename</th>
+                  <th className="border border-gray-300 p-2">Year</th>
+                  <th className="border border-gray-300 p-2">Section</th>
+                  <th className="border border-gray-300 p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {files.map((file) => (
+                  <tr key={file._id} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 p-2">{file.filename}</td>
+                    <td className="border border-gray-300 p-2">{file.year}</td>
+                    <td className="border border-gray-300 p-2">{file.section}</td>
+                    <td className="border border-gray-300 p-2">
+                      <a
+                        href={`http://localhost:5000/api/file/${file.filename}`}
+                        download
+                        className="text-blue-500 hover:underline"
+                      >
+                        Download
+                      </a>
+                      {" | "}
+                      <a 
+                        href={`http://localhost:5000/view/${file.filename}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-green-500 hover:underline"
+                      >
+                        View
+                      </a>
+                      {" | "}
+                      <button
+                        onClick={() => handleDeleteFile(file.filename)}
+                        className="text-red-500 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-gray-500">No files uploaded.</p>
+          )}
         </div>
       )}
     </div>
